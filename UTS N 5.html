@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover">
+  <title>NUMERIK-UTS • Modeler & Bisection</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 20% 20%, #0b0719 0%, #03010a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* bintang */
+    canvas#stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .main-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1300px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+    .glass-card {
+      background: rgba(15, 10, 35, 0.65);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(180, 130, 255, 0.25);
+      border-radius: 2rem;
+      padding: 1.8rem 1.6rem;
+      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.65), 0 0 2.5rem rgba(128, 0, 255, 0.45);
+      transition: all 0.3s ease;
+      color: #f0e6ff;
+      width: 100%;
+    }
+    .glass-card:hover {
+      box-shadow: 0 30px 55px rgba(128, 0, 255, 0.7), 0 0 4rem rgba(180, 100, 255, 0.7);
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2rem, 8vw, 3rem);
+      background: linear-gradient(135deg, #c084fc, #a855f7, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 3px;
+      text-shadow: 0 0 20px #a855f7;
+      margin-bottom: 0.2rem;
+      text-align: center;
+    }
+    .subtitle {
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      font-weight: 300;
+      color: #cab3ff;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.8rem;
+    }
+    .col {
+      flex: 1 1 300px;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.8rem;
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      background: rgba(10, 5, 25, 0.7);
+      border: 1px solid #7c3aed;
+      border-radius: 1.2rem;
+      padding: 1rem;
+      color: #e9d5ff;
+      font-family: 'Poppins', monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+      backdrop-filter: blur(5px);
+      transition: 0.2s;
+      line-height: 1.4;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #c084fc;
+      box-shadow: 0 0 18px #a855f7;
+    }
+    .btn {
+      background: linear-gradient(135deg, #7c3aed, #4f1fb0);
+      border: none;
+      border-radius: 3rem;
+      padding: 0.9rem 1.8rem;
+      font-weight: 600;
+      font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+      color: white;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(147, 51, 234, 0.55);
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 28px rgba(168, 85, 247, 0.85);
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid #a78bfa;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+    .btn-secondary:hover {
+      background: rgba(139, 92, 246, 0.25);
+      box-shadow: 0 8px 22px #7c3aed;
+    }
+    .model-badge {
+      background: rgba(168, 85, 247, 0.22);
+      border-radius: 3rem;
+      padding: 0.4rem 1.6rem;
+      font-weight: 600;
+      display: inline-block;
+      font-size: clamp(1rem, 5vw, 1.3rem);
+      border: 1px solid #c084fc;
+      text-shadow: 0 0 8px #d8b4fe;
+    }
+    .equation {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1rem, 4vw, 1.5rem);
+      color: #f5d0fe;
+      background: rgba(0,0,0,0.45);
+      padding: 0.8rem 1.2rem;
+      border-radius: 1.8rem;
+      letter-spacing: 0.5px;
+      word-break: break-word;
+    }
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      margin: 0.3rem 0 0.8rem;
+    }
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 380px;
+      }
+    }
+    canvas#fitChart {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 1rem 0;
+      border-radius: 1rem;
+      background: rgba(0,0,0,0.4);
+    }
+    table {
+      width: 100%;
+      min-width: 600px;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+    th {
+      background: #4c1d95;
+      color: white;
+      padding: 0.7rem 0.5rem;
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
+    td, th {
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid #4a1e8a;
+      text-align: center;
+    }
+    .input-group {
+      display: flex;
+      gap: 0.7rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .input-group input {
+      background: rgba(20, 10, 40, 0.8);
+      border: 1px solid #7c3aed;
+      border-radius: 2rem;
+      padding: 0.7rem 1.2rem;
+      color: white;
+      font-size: 0.9rem;
+      width: 140px;
+      flex: 1 1 auto;
+      min-width: 120px;
+      backdrop-filter: blur(5px);
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #d8b4fe;
+      box-shadow: 0 0 14px #a855f7;
+    }
+    .error-text {
+      color: #fca5a5;
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+    .info-text {
+      color: #c4b5fd;
+      font-size: 0.85rem;
+    }
+    .result-value {
+      font-size: clamp(1.3rem, 5vw, 1.8rem);
+      font-weight: 700;
+      color: #f5d0fe;
+      word-break: break-word;
+    }
+    hr {
+      border-color: #381e72;
+      margin: 0.8rem 0;
+    }
+    .flex-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem 0.6rem;
+      }
+      .glass-card {
+        padding: 1.4rem 1rem;
+        border-radius: 1.5rem;
+      }
+      .flex-row {
+        gap: 1.2rem;
+      }
+      .btn {
+        padding: 0.8rem 1.3rem;
+        font-size: 0.9rem;
+      }
+      .input-group input {
+        width: 100%;
+        min-width: 100%;
+      }
+      .equation {
+        font-size: 0.95rem;
+        padding: 0.7rem 1rem;
+      }
+    }
+    @media (max-width: 400px) {
+      .model-badge {
+        font-size: 0.9rem;
+        padding: 0.3rem 1.2rem;
+      }
+      h1 {
+        letter-spacing: 1.5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+
+  <div class="main-container">
+    <!-- HEADER -->
+    <div class="glass-card" style="text-align: center; padding-bottom: 1.5rem;">
+      <h1>⚡ NUMERIK-UTS</h1>
+      <div class="subtitle">Model fitting • Bisection • Visualisasi surgawi</div>
+    </div>
+
+    <!-- INPUT & KONTROL -->
+    <div class="flex-row">
+      <div class="col">
+        <div class="glass-card">
+          <h2 style="font-weight: 600; margin-bottom: 0.8rem; display: flex; gap:0.4rem; font-size:1.1rem;">📊 Data Input <span style="font-size:0.7rem; font-weight:300;">(min 16 pasang x,y)</span></h2>
+          <textarea id="dataInput" placeholder="Format: x y (spasi/tab/koma) - satu baris per data&#10;Contoh:&#10;1 2&#10;2 3.5&#10;3 5&#10;...&#10;(minimal 16 baris)">1 2
+2 3.5
+3 5
+4 6.8
+5 8.5
+6 10
+7 11.5
+8 13
+9 14.2
+10 15.3
+11 16.2
+12 17
+13 17.7
+14 18.3
+15 18.8
+16 19.2
+17 19.5
+18 19.7
+19 19.9
+20 20</textarea>
+          <div class="flex-buttons">
+            <button class="btn" id="analyzeBtn"><span>✨</span> ANALYZE & FIT</button>
+            <button class="btn btn-secondary" id="loadSampleBtn"><span>📂</span> Sample</button>
+          </div>
+          <div id="inputError" class="error-text" style="margin-top:0.5rem;"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="glass-card" id="resultCard" style="display: flex; flex-direction: column; gap:0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:0.5rem;">
+            <span style="font-weight:600; font-size:1rem;">🏆 Model Terbaik</span>
+            <span class="model-badge" id="modelName">-</span>
+          </div>
+          <div class="equation" id="equationDisplay">y = ...</div>
+          <div><span style="color:#c4b5fd;">R² = </span><span id="rSquared" style="font-weight:700;">-</span></div>
+          <div class="chart-container">
+            <canvas id="fitChart"></canvas>
+          </div>
+          <div style="font-size:0.75rem; color:#b4a0da;" id="modelReason"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREDIKSI & BISECTION -->
+    <div class="flex-row">
+      <div class="col">
+        <div class="glass-card">
+          <h3 style="margin-bottom:0.8rem; font-size:1.1rem;">🔮 Prediksi Langsung (Evaluasi f(x))</h3>
+          <div class="input-group">
+            <input type="number" id="predictX" placeholder="Masukkan x" step="any">
+            <button class="btn btn-secondary" id="predictBtn">Hitung y</button>
+          </div>
+          <div style="margin-top:0.8rem; font-size:1rem;">📈 y = <span id="predictResult" class="result-value">-</span></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="glass-card">
+          <h3 style="margin-bottom:0.8rem; font-size:1.1rem;">🎯 Inversi dengan Bisection (Cari x untuk y target)</h3>
+          <div class="input-group">
+            <input type="number" id="targetY" placeholder="Target y" step="any">
+            <button class="btn btn-secondary" id="bisectionBtn">Cari x</button>
+          </div>
+          <div style="margin-top:0.8rem; display: flex; gap:0.6rem; flex-wrap:wrap;">
+            <input type="number" id="manualA" placeholder="Batas a (opsional)" step="any" style="width:110px; flex:1;">
+            <input type="number" id="manualB" placeholder="Batas b (opsional)" step="any" style="width:110px; flex:1;">
+          </div>
+          <div id="bisectionError" class="error-text" style="margin-top:0.4rem;"></div>
+          <div style="margin-top:0.8rem; font-size:1rem;">🎯 x ≈ <span id="bisectionResult" class="result-value">-</span></div>
+          <div style="margin-top:0.3rem; color:#c4b5fd; font-size:0.8rem;" id="bisectionErrors"></div>
+          <div style="margin-top:0.8rem;" id="tableContainer"></div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; color:#7e6ab0; font-size:0.7rem; margin-top:0.3rem; padding:0 0.5rem;">
+      Dibuat untuk tugas project • Metode Bisection • Polynomial, Eksponensial, Saturasi
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- STARFIELD ANIMATION ----------
+      const starsCanvas = document.getElementById('stars');
+      const ctxStars = starsCanvas.getContext('2d');
+      let width, height, starsArray = [];
+      function initStars() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        starsCanvas.width = width;
+        starsCanvas.height = height;
+        starsArray = [];
+        const count = Math.floor(width * height * 0.00055);
+        for (let i = 0; i < count; i++) {
+          starsArray.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            radius: Math.random() * 2.0 + 0.5,
+            alpha: Math.random() * 0.7 + 0.25,
+            speed: Math.random() * 0.22 + 0.07,
+          });
+        }
+      }
+      function drawStars() {
+        ctxStars.clearRect(0, 0, width, height);
+        for (let s of starsArray) {
+          ctxStars.beginPath();
+          ctxStars.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctxStars.fillStyle = `rgba(220, 210, 255, ${s.alpha})`;
+          ctxStars.fill();
+          s.alpha += (Math.random() - 0.5) * 0.014;
+          if (s.alpha > 0.9) s.alpha = 0.9;
+          if (s.alpha < 0.15) s.alpha = 0.15;
+          s.y -= s.speed;
+          if (s.y < -5) { s.y = height + 5; s.x = Math.random() * width; }
+        }
+        requestAnimationFrame(drawStars);
+      }
+      initStars();
+      drawStars();
+      window.addEventListener('resize', () => {
+        initStars();
+      });
+
+      // ---------- GLOBAL VARIABLE ----------
+      let chartInstance = null;
+      let bestModel = null;
+      let dataPoints = [];
+
+      // ---------- UTILS ----------
+      function parseData(str) {
+        const lines = str.trim().split(/\r?\n/);
+        const points = [];
+        for (let line of lines) {
+          const parts = line.trim().split(/[ ,\t]+/);
+          if (parts.length >= 2) {
+            const x = parseFloat(parts[0]);
+            const y = parseFloat(parts[1]);
+            if (!isNaN(x) && !isNaN(y)) points.push({ x, y });
+          }
+        }
+        return points;
+      }
+
+      function mean(arr) {
+        return arr.reduce((a,b)=>a+b,0)/arr.length;
+      }
+
+      // ---------- REGRESSION MODELS ----------
+      function linearFit(xs, ys) {
+        const n = xs.length;
+        const sumX = xs.reduce((a,b)=>a+b,0);
+        const sumY = ys.reduce((a,b)=>a+b,0);
+        const sumXY = xs.reduce((a,b,i)=>a + b*ys[i], 0);
+        const sumX2 = xs.reduce((a,b)=>a + b*b, 0);
+        const det = n*sumX2 - sumX*sumX;
+        if (Math.abs(det) < 1e-12) return null;
+        const p1 = (n*sumXY - sumX*sumY) / det;
+        const p0 = (sumY - p1*sumX) / n;
+        const yPred = xs.map(x => p0 + p1*x);
+        const ssRes = ys.reduce((s, y, i) => s + (y - yPred[i])**2, 0);
+        const yMean = mean(ys);
+        const ssTot = ys.reduce((s, y) => s + (y - yMean)**2, 0);
+        const r2 = ssTot === 0 ? 0 : 1 - ssRes/ssTot;
+        return { p0, p1, r2, func: x => p0 + p1*x };
+      }
+
+      function polyFit(xs, ys, degree = 2) {
+        const n = xs.length;
+        const A = [];
+        const B = [];
+        for (let i = 0; i <= degree; i++) {
+          B[i] = xs.reduce((sum, x, idx) => sum + Math.pow(x, i) * ys[idx], 0);
+          A[i] = [];
+          for (let j = 0; j <= degree; j++) {
+            A[i][j] = xs.reduce((sum, x) => sum + Math.pow(x, i+j), 0);
+          }
+        }
+        const size = degree + 1;
+        const aug = A.map((row, i) => [...row, B[i]]);
+        for (let col = 0; col < size; col++) {
+          let maxRow = col;
+          for (let row = col+1; row < size; row++) {
+            if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+          }
+          [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+          if (Math.abs(aug[col][col]) < 1e-12) return null;
+          for (let row = col+1; row < size; row++) {
+            const factor = aug[row][col] / aug[col][col];
+            for (let k = col; k <= size; k++) aug[row][k] -= factor * aug[col][k];
+          }
+        }
+        const coeffs = new Array(size).fill(0);
+        for (let i = size-1; i >= 0; i--) {
+          let sum = aug[i][size];
+          for (let j = i+1; j < size; j++) sum -= aug[i][j] * coeffs[j];
+          coeffs[i] = sum / aug[i][i];
+        }
+        const func = x => {
+          let val = 0;
+          for (let i = 0; i < coeffs.length; i++) val += coeffs[i] * Math.pow(x, i);
+          return val;
+        };
+        const yPred = xs.map(func);
+        const ssRes = ys.reduce((s, y, i) => s + (y - yPred[i])**2, 0);
+        const yMean = mean(ys);
+        const ssTot = ys.reduce((s, y) => s + (y - yMean)**2, 0);
+        const r2 = ssTot === 0 ? 0 : 1 - ssRes/ssTot;
+        return { coeffs, r2, func };
+      }
+
+      function exponentialFit(xs, ys) {
+        if (ys.some(y => y <= 0)) return null;
+        const lnYs = ys.map(y => Math.log(y));
+        const lin = linearFit(xs, lnYs);
+        if (!lin) return null;
+        const a = Math.exp(lin.p0);
+        const b = lin.p1;
+        const func = x => a * Math.exp(b * x);
+        const yPred = xs.map(func);
+        const ssRes = ys.reduce((s, y, i) => s + (y - yPred[i])**2, 0);
+        const yMean = mean(ys);
+        const ssTot = ys.reduce((s, y) => s + (y - yMean)**2, 0);
+        const r2 = ssTot === 0 ? 0 : 1 - ssRes/ssTot;
+        return { a, b, r2, func, type: b > 0 ? 'Eksponensial Pertumbuhan' : 'Eksponensial Peluruhan' };
+      }
+
+      function saturationFit(xs, ys, maxIter = 8) {
+        const n = xs.length;
+        let a = Math.max(...ys) * 1.08;
+        let b = 0.5;
+        for (let iter = 0; iter < maxIter; iter++) {
+          const valid = ys.every(y => y < a);
+          if (!valid) a = Math.max(...ys) * 1.12;
+          const Y = ys.map(y => Math.log(Math.max(1e-9, 1 - y/a)));
+          let sumX2 = 0, sumXY = 0;
+          for (let i = 0; i < n; i++) {
+            sumX2 += xs[i] * xs[i];
+            sumXY += xs[i] * Y[i];
+          }
+          if (sumX2 === 0) break;
+          b = -sumXY / sumX2;
+          if (b <= 0) b = 0.01;
+          const z = xs.map(x => 1 - Math.exp(-b*x));
+          let sumZ2 = 0, sumYZ = 0;
+          for (let i = 0; i < n; i++) {
+            sumZ2 += z[i]*z[i];
+            sumYZ += ys[i]*z[i];
+          }
+          if (sumZ2 > 1e-12) a = sumYZ / sumZ2;
+          if (a <= Math.max(...ys)) a = Math.max(...ys) * 1.02;
+        }
+        const func = x => a * (1 - Math.exp(-b*x));
+        const yPred = xs.map(func);
+        const ssRes = ys.reduce((s, y, i) => s + (y - yPred[i])**2, 0);
+        const yMean = mean(ys);
+        const ssTot = ys.reduce((s, y) => s + (y - yMean)**2, 0);
+        const r2 = ssTot === 0 ? 0 : 1 - ssRes/ssTot;
+        return { a, b, r2, func };
+      }
+
+      function findBestModel(points) {
+        const xs = points.map(p => p.x);
+        const ys = points.map(p => p.y);
+        const candidates = [];
+        const lin = linearFit(xs, ys);
+        if (lin) candidates.push({ type: 'Linear', r2: lin.r2, func: lin.func, params: `p0=${lin.p0.toFixed(4)}, p1=${lin.p1.toFixed(4)}`, expr: `${lin.p0.toFixed(4)} + ${lin.p1.toFixed(4)}·x` });
+        const poly2 = polyFit(xs, ys, 2);
+        if (poly2 && poly2.coeffs) {
+          const [c0,c1,c2] = poly2.coeffs;
+          candidates.push({ type: 'Polynomial (derajat 2)', r2: poly2.r2, func: poly2.func, params: `c0=${c0.toFixed(4)}, c1=${c1.toFixed(4)}, c2=${c2.toFixed(4)}`, expr: `${c0.toFixed(4)} + ${c1.toFixed(4)}·x + ${c2.toFixed(4)}·x²` });
+        }
+        const expo = exponentialFit(xs, ys);
+        if (expo) candidates.push({ type: expo.type, r2: expo.r2, func: expo.func, params: `a=${expo.a.toFixed(4)}, b=${expo.b.toFixed(4)}`, expr: `${expo.a.toFixed(4)} · exp(${expo.b.toFixed(4)}·x)` });
+        const sat = saturationFit(xs, ys);
+        if (sat) candidates.push({ type: 'Eksponensial Saturasi', r2: sat.r2, func: sat.func, params: `a=${sat.a.toFixed(4)}, b=${sat.b.toFixed(4)}`, expr: `${sat.a.toFixed(4)} · (1 - exp(-${sat.b.toFixed(4)}·x))` });
+        if (candidates.length === 0) return null;
+        candidates.sort((a,b) => b.r2 - a.r2);
+        return candidates[0];
+      }
+
+      function renderChart(points, modelFunc) {
+        const ctx = document.getElementById('fitChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        const xsData = points.map(p => p.x);
+        const xMin = Math.min(...xsData);
+        const xMax = Math.max(...xsData);
+        const step = (xMax - xMin) / 100;
+        const curveX = [], curveY = [];
+        for (let x = xMin - (xMax-xMin)*0.1; x <= xMax + (xMax-xMin)*0.1; x += step) {
+          curveX.push(x);
+          curveY.push(modelFunc(x));
+        }
+        chartInstance = new Chart(ctx, {
+          type: 'scatter',
+          data: {
+            datasets: [
+              { label: 'Data', data: points.map(p => ({ x: p.x, y: p.y })), backgroundColor: '#f0abfc', borderColor: '#d8b4fe', pointRadius: 4, pointHoverRadius: 7, order: 1 },
+              { label: 'Model Fit', data: curveX.map((x,i)=>({x, y:curveY[i]})), type: 'line', borderColor: '#a78bfa', borderWidth: 2.5, fill: false, pointRadius: 0, tension: 0.2, order: 0 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#e9d5ff', font: { size: 11 } } } },
+            scales: {
+              x: { title: { display: true, text: 'x', color: '#d8b4fe' }, ticks: { color: '#c4b5fd' }, grid: { color: '#331d5c' } },
+              y: { title: { display: true, text: 'y', color: '#d8b4fe' }, ticks: { color: '#c4b5fd' }, grid: { color: '#331d5c' } }
+            }
+          }
+        });
+      }
+
+      function updateUI(model, points) {
+        document.getElementById('modelName').textContent = model.type;
+        document.getElementById('equationDisplay').textContent = 'y = ' + model.expr;
+        document.getElementById('rSquared').textContent = model.r2.toFixed(6);
+        document.getElementById('modelReason').textContent = `Dipilih karena R² tertinggi = ${model.r2.toFixed(6)}. Model: ${model.type}. Parameter: ${model.params}`;
+        renderChart(points, model.func);
+      }
+
+      function bisection(f, target, aInit, bInit, maxIter=50, tol=1e-8) {
+        let a = aInit, b = bInit;
+        const g = x => f(x) - target;
+        let fa = g(a), fb = g(b);
+        const tableRows = [];
+        if (fa * fb > 0) {
+          let expand = (b-a)*0.5;
+          for (let tries=0; tries<20; tries++) {
+            a -= expand; b += expand;
+            fa = g(a); fb = g(b);
+            if (fa*fb <= 0) break;
+            expand *= 1.5;
+          }
+          if (fa*fb > 0) return { success: false, message: 'Nilai target tidak terapit. Masukkan interval manual.' };
+        }
+        let c, fc;
+        for (let i=0; i<maxIter; i++) {
+          c = (a+b)/2;
+          fc = g(c);
+          tableRows.push({ iter: i+1, a, b, c, fc, errorAbs: Math.abs(b-a), errorRel: Math.abs((b-a)/(c!==0?c:1e-12)) });
+          if (Math.abs(b-a) < tol || Math.abs(fc) < 1e-12) break;
+          if (fa*fc < 0) { b = c; fb = fc; }
+          else { a = c; fa = fc; }
+        }
+        return { success: true, root: (a+b)/2, tableRows, finalErrorAbs: Math.abs(b-a), finalErrorRel: Math.abs((b-a)/(((a+b)/2)||1e-12)) };
+      }
+
+      function renderBisectionTable(rows) {
+        if (!rows || rows.length===0) return '';
+        let html = '<div class="table-wrapper"><table><thead><tr><th>Iter</th><th>a</th><th>b</th><th>c</th><th>f(c)-target</th><th>|b-a|</th><th>Relatif</th></tr></thead><tbody>';
+        rows.forEach(r => {
+          html += `<tr><td>${r.iter}</td><td>${r.a.toFixed(6)}</td><td>${r.b.toFixed(6)}</td><td>${r.c.toFixed(6)}</td><td>${r.fc.toExponential(4)}</td><td>${r.errorAbs.toExponential(4)}</td><td>${(r.errorRel*100).toFixed(6)}%</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        return html;
+      }
+
+      // event listeners
+      document.getElementById('analyzeBtn').addEventListener('click', ()=>{
+        const raw = document.getElementById('dataInput').value;
+        const points = parseData(raw);
+        document.getElementById('inputError').textContent = '';
+        if (points.length < 16) {
+          document.getElementById('inputError').textContent = 'Error: Masukkan minimal 16 pasangan data (x,y).';
+          return;
+        }
+        dataPoints = points;
+        const best = findBestModel(points);
+        if (!best) {
+          document.getElementById('inputError').textContent = 'Gagal menemukan model, cek data.';
+          return;
+        }
+        bestModel = best;
+        updateUI(best, points);
+      });
+
+      document.getElementById('loadSampleBtn').addEventListener('click', ()=>{
+        document.getElementById('dataInput').value = `1 2\n2 3.5\n3 5\n4 6.8\n5 8.5\n6 10\n7 11.5\n8 13\n9 14.2\n10 15.3\n11 16.2\n12 17\n13 17.7\n14 18.3\n15 18.8\n16 19.2\n17 19.5\n18 19.7\n19 19.9\n20 20`;
+        document.getElementById('inputError').textContent = '';
+      });
+
+      document.getElementById('predictBtn').addEventListener('click', ()=>{
+        const xVal = parseFloat(document.getElementById('predictX').value);
+        if (isNaN(xVal) || !bestModel) {
+          document.getElementById('predictResult').textContent = 'Input x dan pastikan model sudah di-fit.';
+          return;
+        }
+        document.getElementById('predictResult').textContent = bestModel.func(xVal).toFixed(6);
+      });
+
+      document.getElementById('bisectionBtn').addEventListener('click', ()=>{
+        document.getElementById('bisectionError').textContent = '';
+        document.getElementById('bisectionResult').textContent = '-';
+        document.getElementById('bisectionErrors').textContent = '';
+        document.getElementById('tableContainer').innerHTML = '';
+        if (!bestModel) {
+          document.getElementById('bisectionError').textContent = 'Jalankan fitting model terlebih dahulu.';
+          return;
+        }
+        const target = parseFloat(document.getElementById('targetY').value);
+        if (isNaN(target)) {
+          document.getElementById('bisectionError').textContent = 'Masukkan target y yang valid.';
+          return;
+        }
+        const xs = dataPoints.map(p=>p.x);
+        let a = Math.min(...xs), b = Math.max(...xs);
+        const manA = parseFloat(document.getElementById('manualA').value);
+        const manB = parseFloat(document.getElementById('manualB').value);
+        if (!isNaN(manA) && !isNaN(manB)) { a = manA; b = manB; }
+        const result = bisection(bestModel.func, target, a, b);
+        if (!result.success) {
+          document.getElementById('bisectionError').textContent = result.message || 'Gagal.';
+          return;
+        }
+        document.getElementById('bisectionResult').textContent = result.root.toFixed(8);
+        document.getElementById('bisectionErrors').innerHTML = `Error absolut akhir: ${result.finalErrorAbs.toExponential(4)} &nbsp; | &nbsp; Error relatif: ${(result.finalErrorRel*100).toFixed(8)}%`;
+        document.getElementById('tableContainer').innerHTML = renderBisectionTable(result.tableRows) + '<div style="margin-top:0.5rem; color:#c4b5fd; font-size:0.8rem;"><strong>Interpretasi:</strong> Error absolut ≈ setengah lebar interval akhir, menunjukkan ketidakpastian x. Error relatif menunjukkan presisi terhadap nilai x.</div>';
+      });
+
+      window.addEventListener('load', ()=>{
+        document.getElementById('loadSampleBtn').click();
+        document.getElementById('analyzeBtn').click();
+      });
+    })();
+  </script>
+</body>
+</html>
